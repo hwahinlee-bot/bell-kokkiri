@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>공부하는코끼리 종소리</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+:root {
+  --bg: #0f1117; --surface: #1a1d27; --surface2: #22263a;
+  --border: rgba(255,255,255,0.08); --border2: rgba(255,255,255,0.15);
+  --text: #f0f0f0; --text2: #8b8fa8;
+  --accent: #6c8bff; --accent-glow: rgba(108,139,255,0.18);
+  --green: #4ecb71; --green-glow: rgba(78,203,113,0.15);
+  --amber: #f5a623; --red: #ff5c5c;
+}
+html, body { height: 100%; }
+body {
+  background: var(--bg); color: var(--text);
+  font-family: 'Pretendard','Apple SD Gothic Neo','Noto Sans KR',sans-serif;
+  display: flex; flex-direction: column; overflow: hidden;
+}
+header {
+  padding: 1.2rem 1.5rem 0.8rem;
+  display: flex; align-items: center; gap: 12px;
+  border-bottom: 0.5px solid var(--border); flex-shrink: 0;
+}
+.logo {
+  width: 40px; height: 40px; background: var(--accent-glow);
+  border: 1px solid var(--accent); border-radius: 12px;
+  display: flex; align-items: center; justify-content: center; font-size: 20px;
+}
+header h1 { font-size: 17px; font-weight: 600; letter-spacing: -0.3px; }
+.wakelock-badge {
+  font-size: 11px; padding: 4px 9px; border-radius: 6px; margin-left: auto;
+  background: rgba(78,203,113,0.1); border: 0.5px solid rgba(78,203,113,0.3); color: var(--green);
+}
+.wakelock-badge.off { background: rgba(255,92,92,0.08); border-color: rgba(255,92,92,0.3); color: var(--red); }
+
+main { flex: 1; overflow-y: auto; padding: 1.1rem 1.3rem; display: flex; flex-direction: column; gap: 1rem; }
+
+/* 상태 카드 */
+.status-card {
+  background: var(--surface); border: 0.5px solid var(--border);
+  border-radius: 16px; padding: 1.3rem; display: flex; align-items: center; gap: 1rem; flex-shrink: 0;
+}
+.status-indicator {
+  width: 54px; height: 54px; flex-shrink: 0; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; font-size: 26px;
+  background: var(--surface2); border: 1px solid var(--border2); transition: all 0.3s;
+}
+.status-indicator.ringing {
+  background: rgba(245,166,35,0.2); border-color: var(--amber);
+  animation: pulse-ring 0.5s ease-in-out infinite alternate;
+}
+@keyframes pulse-ring {
+  from { transform: scale(1); box-shadow: 0 0 0 0 rgba(245,166,35,0.4); }
+  to   { transform: scale(1.08); box-shadow: 0 0 0 10px rgba(245,166,35,0); }
+}
+.status-text { flex: 1; }
+.status-text strong { font-size: 16px; font-weight: 600; display: block; }
+.status-text span { font-size: 13px; color: var(--text2); }
+.next-bell { font-size: 26px; font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; letter-spacing: -0.5px; }
+
+/* 마스터 토글 */
+.master-toggle { display: flex; gap: 10px; flex-shrink: 0; }
+.btn-master {
+  flex: 1; padding: 16px; border-radius: 14px; border: 1px solid var(--border2);
+  background: var(--surface); color: var(--text2); font-size: 16px; font-weight: 600;
+  cursor: pointer; font-family: inherit; transition: all 0.2s; min-height: 54px;
+}
+.btn-master.on  { background: var(--green-glow); border-color: var(--green); color: var(--green); }
+.btn-master.off { background: rgba(255,92,92,0.08); border-color: rgba(255,92,92,0.4); color: var(--red); }
+
+/* 운영 요일 */
+.day-selector {
+  background: var(--surface); border: 0.5px solid var(--border);
+  border-radius: 16px; padding: 1rem 1.2rem; display: flex; flex-direction: column; gap: 10px; flex-shrink: 0;
+}
+.day-selector-label { font-size: 13px; color: var(--text2); }
+.day-pills { display: flex; gap: 8px; }
+.day-pill {
+  flex: 1; height: 46px; border-radius: 12px;
+  border: 0.5px solid var(--border2); background: var(--surface2);
+  color: var(--text2); font-size: 15px; font-weight: 600;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s; font-family: inherit;
+}
+.day-pill.on { background: var(--accent-glow); border-color: var(--accent); color: var(--accent); }
+
+/* 섹션 레이블 */
+.section-label {
+  font-size: 11px; font-weight: 600; color: var(--text2);
+  letter-spacing: 0.8px; text-transform: uppercase; margin-bottom: 6px; padding-left: 2px;
+}
+
+/* 스케줄 목록 */
+.schedule-list { background: var(--surface); border: 0.5px solid var(--border); border-radius: 16px; overflow: hidden; }
+.schedule-row {
+  display: flex; align-items: center; padding: 1rem 1.2rem;
+  gap: 14px; border-bottom: 0.5px solid var(--border); transition: background 0.15s;
+  min-height: 64px;
+}
+.schedule-row:last-child { border-bottom: none; }
+.schedule-row:active { background: var(--surface2); }
+.bell-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--border2); flex-shrink: 0; }
+.bell-dot.active { background: var(--green); box-shadow: 0 0 6px var(--green); }
+.bell-dot.fired  { background: var(--text2); }
+.bell-dot.next   { background: var(--accent); box-shadow: 0 0 6px var(--accent); }
+.schedule-time { font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: -0.3px; }
+.schedule-days { font-size: 11px; color: var(--text2); margin-top: 2px; }
+.schedule-label {
+  font-size: 13px; color: var(--text2); background: var(--surface2);
+  border: 0.5px solid var(--border2); border-radius: 8px; padding: 4px 10px; white-space: nowrap;
+}
+.schedule-label.start { color: var(--green); border-color: rgba(78,203,113,0.3); background: rgba(78,203,113,0.08); }
+.schedule-label.end   { color: #ff8c8c; border-color: rgba(255,92,92,0.3); background: rgba(255,92,92,0.08); }
+.schedule-toggle {
+  width: 44px; height: 44px; border: 0.5px solid var(--border2); border-radius: 12px;
+  background: transparent; color: var(--text2); font-size: 16px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; transition: all 0.15s; flex-shrink: 0;
+}
+.schedule-toggle:active { background: var(--surface2); }
+.empty-hint { text-align: center; font-size: 14px; color: var(--text2); padding: 2rem 0; }
+
+/* 시간 추가 - 모달 방식 */
+.btn-add-open {
+  width: 100%; padding: 18px; border-radius: 14px; border: 1px dashed var(--border2);
+  background: var(--surface); color: var(--text2); font-size: 16px; font-weight: 500;
+  cursor: pointer; font-family: inherit; transition: all 0.2s;
+}
+.btn-add-open:active { background: var(--surface2); }
+
+/* 모달 오버레이 */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+  display: none; align-items: flex-end; justify-content: center;
+  z-index: 100;
+}
+.modal-overlay.open { display: flex; }
+.modal-sheet {
+  background: var(--surface); border-radius: 24px 24px 0 0;
+  padding: 1.5rem 1.5rem 2.5rem; width: 100%; max-width: 600px;
+  display: flex; flex-direction: column; gap: 1.2rem;
+}
+.modal-title { font-size: 17px; font-weight: 600; text-align: center; }
+
+/* 시간 피커 */
+.time-picker {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  background: var(--surface2); border-radius: 16px; padding: 1rem;
+}
+.time-picker-sep { font-size: 32px; font-weight: 700; color: var(--text2); }
+.drum-col { display: flex; flex-direction: column; align-items: center; gap: 0; position: relative; }
+.drum-display {
+  font-size: 42px; font-weight: 700; font-variant-numeric: tabular-nums;
+  color: var(--text); min-width: 72px; text-align: center; line-height: 1;
+  padding: 8px 0; letter-spacing: -1px;
+}
+.drum-btn {
+  width: 72px; height: 48px; background: transparent; border: none;
+  color: var(--text2); font-size: 22px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; border-radius: 12px;
+  transition: background 0.15s; font-family: inherit;
+}
+.drum-btn:active { background: var(--border2); color: var(--text); }
+
+/* 구분 선택 */
+.type-btns { display: flex; gap: 8px; }
+.type-btn {
+  flex: 1; padding: 14px; border-radius: 12px; border: 0.5px solid var(--border2);
+  background: var(--surface2); color: var(--text2); font-size: 15px; font-weight: 600;
+  cursor: pointer; font-family: inherit; transition: all 0.15s;
+}
+.type-btn.sel-start { background: rgba(78,203,113,0.12); border-color: var(--green); color: var(--green); }
+.type-btn.sel-end   { background: rgba(255,92,92,0.08); border-color: var(--red); color: #ff8c8c; }
+.type-btn.sel-custom { background: var(--accent-glow); border-color: var(--accent); color: var(--accent); }
+
+/* 요일 선택 (폼 안) */
+.form-day-pills { display: flex; gap: 6px; }
+.form-day-pill {
+  flex: 1; height: 44px; border-radius: 10px;
+  border: 0.5px solid var(--border2); background: var(--surface2);
+  color: var(--text2); font-size: 14px; font-weight: 600;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s; font-family: inherit;
+}
+.form-day-pill.on { background: var(--accent-glow); border-color: var(--accent); color: var(--accent); }
+
+.modal-actions { display: flex; gap: 10px; }
+.btn-cancel {
+  flex: 1; padding: 16px; border-radius: 14px; border: 0.5px solid var(--border2);
+  background: var(--surface2); color: var(--text2); font-size: 16px; font-weight: 600;
+  cursor: pointer; font-family: inherit;
+}
+.btn-confirm {
+  flex: 2; padding: 16px; border-radius: 14px; border: none;
+  background: var(--accent); color: #fff; font-size: 16px; font-weight: 600;
+  cursor: pointer; font-family: inherit;
+}
+.btn-cancel:active { opacity: 0.7; }
+.btn-confirm:active { opacity: 0.85; }
+
+/* 설정 행 */
+.settings-row {
+  background: var(--surface); border: 0.5px solid var(--border); border-radius: 16px;
+  padding: 1rem 1.2rem; display: flex; align-items: center; gap: 12px; flex-shrink: 0;
+}
+.settings-row span { flex: 1; font-size: 15px; }
+.settings-row small { font-size: 12px; color: var(--text2); }
+.stepper { display: flex; align-items: center; gap: 6px; }
+.stepper-btn {
+  width: 44px; height: 44px; background: var(--surface2); border: 0.5px solid var(--border2);
+  border-radius: 12px; color: var(--text); font-size: 20px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.stepper-btn:active { background: var(--border2); }
+.stepper-val { font-size: 18px; font-weight: 600; min-width: 28px; text-align: center; }
+
+/* 미리듣기 */
+.preview-row { display: flex; gap: 10px; }
+.btn-preview {
+  flex: 1; padding: 16px; border-radius: 14px; border: 1px dashed var(--border2);
+  background: var(--surface); color: var(--text); font-size: 15px; font-weight: 500;
+  cursor: pointer; font-family: inherit; display: flex; align-items: center;
+  justify-content: center; gap: 8px; transition: all 0.2s;
+}
+.btn-preview:active { opacity: 0.75; }
+.btn-preview.playing { border-style: solid; border-color: var(--amber); background: rgba(245,166,35,0.07); color: var(--amber); }
+.preview-dots { display: flex; gap: 4px; align-items: center; height: 16px; }
+.preview-dots span {
+  display: inline-block; width: 5px; height: 5px; border-radius: 50%;
+  background: var(--amber); animation: dot-bounce 0.6s ease-in-out infinite alternate;
+}
+.preview-dots span:nth-child(2) { animation-delay: 0.15s; }
+.preview-dots span:nth-child(3) { animation-delay: 0.30s; }
+@keyframes dot-bounce {
+  from { transform: scaleY(0.5); opacity: 0.4; }
+  to   { transform: scaleY(1.4); opacity: 1; }
+}
+
+/* 로그 */
+.log-box {
+  background: var(--surface); border: 0.5px solid var(--border); border-radius: 16px;
+  padding: 1rem 1.2rem; font-size: 12px; color: var(--text2);
+  font-variant-numeric: tabular-nums; min-height: 56px; max-height: 110px; overflow-y: auto; line-height: 1.9;
+}
+.log-entry { display: block; }
+.log-entry.ring { color: var(--amber); }
+.log-entry.done { color: var(--green); }
+
+/* 슬라이더 */
+input[type=range] { accent-color: var(--accent); }
+
+/* 피커 탭 */
+.picker-tabs { display: flex; gap: 8px; }
+.picker-tab {
+  flex: 1; padding: 10px; border-radius: 10px; border: 0.5px solid var(--border2);
+  background: var(--surface2); color: var(--text2); font-size: 14px; font-weight: 600;
+  cursor: pointer; font-family: inherit; transition: all 0.15s;
+}
+.picker-tab.active { background: var(--accent-glow); border-color: var(--accent); color: var(--accent); }
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">🐘</div>
+  <h1>공부하는코끼리 종소리</h1>
+  <small id="wakeLockBadge" class="wakelock-badge off">화면유지 ✕</small>
+</header>
+
+<main>
+  <!-- 상태 -->
+  <div class="status-card">
+    <div class="status-indicator" id="statusIcon">🔔</div>
+    <div class="status-text">
+      <strong id="statusTitle">대기 중</strong>
+      <span id="statusSub">확인 중...</span>
+    </div>
+    <div class="next-bell" id="nextBellTime">--:--</div>
+  </div>
+
+  <!-- 켜기/끄기 -->
+  <div class="master-toggle">
+    <button class="btn-master on" id="btnOn"  onclick="setActive(true)">● 켜기</button>
+    <button class="btn-master"   id="btnOff" onclick="setActive(false)">○ 끄기</button>
+  </div>
+
+  <!-- 운영 요일 -->
+  <div class="day-selector">
+    <span class="day-selector-label">운영 요일</span>
+    <div class="day-pills" id="activeDays">
+      <button class="day-pill on" data-day="1" onclick="toggleActiveDay(this)">월</button>
+      <button class="day-pill on" data-day="2" onclick="toggleActiveDay(this)">화</button>
+      <button class="day-pill on" data-day="3" onclick="toggleActiveDay(this)">수</button>
+      <button class="day-pill on" data-day="4" onclick="toggleActiveDay(this)">목</button>
+      <button class="day-pill"    data-day="5" onclick="toggleActiveDay(this)">금</button>
+      <button class="day-pill"    data-day="6" onclick="toggleActiveDay(this)">토</button>
+      <button class="day-pill"    data-day="0" onclick="toggleActiveDay(this)">일</button>
+    </div>
+  </div>
+
+  <!-- 스케줄 목록 -->
+  <div>
+    <div class="section-label">등록된 스케줄</div>
+    <div class="schedule-list" id="scheduleList">
+      <div class="empty-hint" id="emptyHint">스케줄이 없습니다</div>
+    </div>
+  </div>
+
+  <!-- 시간 추가 버튼 -->
+  <button class="btn-add-open" onclick="openModal()">+ 시간 추가</button>
+
+  <!-- 설정: 반복 횟수 -->
+  <div class="settings-row">
+    <span>반복 횟수</span>
+    <div class="stepper">
+      <button class="stepper-btn" onclick="changeRepeat(-1)">−</button>
+      <span class="stepper-val" id="repeatVal">3</span>
+      <button class="stepper-btn" onclick="changeRepeat(+1)">+</button>
+    </div>
+  </div>
+
+  <!-- 설정: 볼륨 -->
+  <div class="settings-row">
+    <span>볼륨</span>
+    <div style="flex:1; padding:0 12px;">
+      <input type="range" id="volRange" min="0.1" max="1" step="0.05" value="1"
+        oninput="ttsVolume=parseFloat(this.value);document.getElementById('volVal').textContent=Math.round(ttsVolume*100)+'%'"
+        style="width:100%;">
+    </div>
+    <span class="stepper-val" id="volVal" style="min-width:40px;text-align:right;">100%</span>
+  </div>
+
+  <!-- 설정: 속도 -->
+  <div class="settings-row">
+    <span>말하기 속도</span>
+    <div style="flex:1; padding:0 12px;">
+      <input type="range" id="rateRange" min="0.5" max="1.4" step="0.05" value="0.85"
+        oninput="ttsRate=parseFloat(this.value);document.getElementById('rateVal').textContent=parseFloat(this.value).toFixed(2)+'x'"
+        style="width:100%;">
+    </div>
+    <span class="stepper-val" id="rateVal" style="min-width:48px;text-align:right;">0.85x</span>
+  </div>
+
+  <!-- 미리듣기 -->
+  <div class="preview-row">
+    <button class="btn-preview" id="btnPreviewStart" onclick="previewAnnounce('start')">
+      <span>▶</span><span>시작 미리듣기</span>
+      <span class="preview-dots" id="dotsStart"></span>
+    </button>
+    <button class="btn-preview" id="btnPreviewEnd" onclick="previewAnnounce('end')" style="border-color:rgba(255,92,92,0.35);color:var(--red);">
+      <span>▶</span><span>종료 미리듣기</span>
+      <span class="preview-dots" id="dotsEnd"></span>
+    </button>
+  </div>
+
+  <!-- 로그 -->
+  <div>
+    <div class="section-label">최근 기록</div>
+    <div class="log-box" id="logBox">
+      <span class="log-entry" data-placeholder style="color:var(--text2)">아직 기록이 없습니다</span>
+    </div>
+  </div>
+</main>
+
+<!-- 시간 추가 모달 -->
+<div class="modal-overlay" id="modalOverlay" onclick="handleOverlayClick(event)">
+  <div class="modal-sheet">
+    <div class="modal-title">시간 추가</div>
+
+    <!-- 입력 방식 탭 -->
+    <div class="picker-tabs">
+      <button class="picker-tab active" id="tabDrum" onclick="switchTab('drum')">▲▼ 버튼</button>
+      <button class="picker-tab"        id="tabText" onclick="switchTab('text')">직접 입력</button>
+    </div>
+
+    <!-- 드럼롤 시간 피커 -->
+    <div class="time-picker" id="panelDrum">
+      <div class="drum-col">
+        <button class="drum-btn" onclick="changeHour(1)">▲</button>
+        <div class="drum-display" id="pickHour">09</div>
+        <button class="drum-btn" onclick="changeHour(-1)">▼</button>
+      </div>
+      <div class="time-picker-sep">:</div>
+      <div class="drum-col">
+        <button class="drum-btn" onclick="changeMin(1)">▲</button>
+        <div class="drum-display" id="pickMin">00</div>
+        <button class="drum-btn" onclick="changeMin(-1)">▼</button>
+      </div>
+    </div>
+
+    <!-- 직접 입력 패널 -->
+    <div class="time-picker" id="panelText" style="display:none; gap:6px;">
+      <input id="inputH" type="number" min="0" max="23" placeholder="시"
+        style="flex:1; background:var(--surface); border:0.5px solid var(--border2); border-radius:12px;
+               color:var(--text); font-size:38px; font-weight:700; text-align:center;
+               padding:12px 0; outline:none; -webkit-appearance:none;"
+        oninput="syncFromText()">
+      <div class="time-picker-sep">:</div>
+      <input id="inputM" type="number" min="0" max="59" placeholder="분"
+        style="flex:1; background:var(--surface); border:0.5px solid var(--border2); border-radius:12px;
+               color:var(--text); font-size:38px; font-weight:700; text-align:center;
+               padding:12px 0; outline:none; -webkit-appearance:none;"
+        oninput="syncFromText()">
+    </div>
+
+    <!-- 구분 -->
+    <div class="type-btns">
+      <button class="type-btn sel-start" data-type="start" onclick="selectType(this)">수업 시작</button>
+      <button class="type-btn"           data-type="end"   onclick="selectType(this)">수업 종료</button>
+      <button class="type-btn"           data-type="custom" onclick="selectType(this)">기타</button>
+    </div>
+
+    <!-- 요일 -->
+    <div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:8px;">요일 선택</div>
+      <div class="form-day-pills" id="formDays">
+        <button class="form-day-pill on" data-day="1" onclick="this.classList.toggle('on')">월</button>
+        <button class="form-day-pill on" data-day="2" onclick="this.classList.toggle('on')">화</button>
+        <button class="form-day-pill on" data-day="3" onclick="this.classList.toggle('on')">수</button>
+        <button class="form-day-pill on" data-day="4" onclick="this.classList.toggle('on')">목</button>
+        <button class="form-day-pill"    data-day="5" onclick="this.classList.toggle('on')">금</button>
+        <button class="form-day-pill"    data-day="6" onclick="this.classList.toggle('on')">토</button>
+        <button class="form-day-pill"    data-day="0" onclick="this.classList.toggle('on')">일</button>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">취소</button>
+      <button class="btn-confirm" onclick="addSchedule()">추가</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const DEFAULT_SCHEDULES = [
+  { time:"09:00", type:"start", enabled:true, days:[1,2,3,4] },
+  { time:"10:30", type:"end",   enabled:true, days:[1,2,3,4] },
+  { time:"10:40", type:"start", enabled:true, days:[1,2,3,4] },
+  { time:"12:10", type:"end",   enabled:true, days:[1,2,3,4] },
+  { time:"14:00", type:"start", enabled:true, days:[1,2,3,4] },
+  { time:"15:30", type:"end",   enabled:true, days:[1,2,3,4] },
+  { time:"15:40", type:"start", enabled:true, days:[1,2,3,4] },
+  { time:"17:10", type:"end",   enabled:true, days:[1,2,3,4] },
+];
+
+const TTS_TEXT = { start:"수업을 시작합니다", end:"수업을 마칩니다", custom:"안내 말씀드립니다" };
+
+let schedules=[]; let repeatCount=3; let ttsVolume=1.0; let ttsRate=0.85;
+let isActive=true; let wakeLock=null; let firedToday=new Set();
+let lastFiredMinute=""; let schedulerWorker=null; let activeDays=[1,2,3,4];
+
+/* ── 유틸 ── */
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+function pad2(n){ return String(n).padStart(2,"0"); }
+function nowHM(){ const d=new Date(); return pad2(d.getHours())+":"+pad2(d.getMinutes()); }
+function nowHMS(){ const d=new Date(); return pad2(d.getHours())+":"+pad2(d.getMinutes())+":"+pad2(d.getSeconds()); }
+
+/* ── localStorage ── */
+function saveState(){
+  localStorage.setItem("bs_schedules", JSON.stringify(schedules));
+  localStorage.setItem("bs_repeat",    String(repeatCount));
+  localStorage.setItem("bs_volume",    String(ttsVolume));
+  localStorage.setItem("bs_rate",      String(ttsRate));
+  localStorage.setItem("bs_active",    String(isActive));
+  localStorage.setItem("bs_fired",     JSON.stringify([...firedToday]));
+  localStorage.setItem("bs_firedDate", todayStr());
+  localStorage.setItem("bs_activeDays",JSON.stringify(activeDays));
+}
+
+function loadState(){
+  try {
+    const raw=localStorage.getItem("bs_schedules");
+    schedules=raw?JSON.parse(raw):JSON.parse(JSON.stringify(DEFAULT_SCHEDULES));
+    repeatCount=parseInt(localStorage.getItem("bs_repeat")||"3",10);
+    ttsVolume=parseFloat(localStorage.getItem("bs_volume")||"1.0");
+    ttsRate=parseFloat(localStorage.getItem("bs_rate")||"0.85");
+    isActive=localStorage.getItem("bs_active")!=="false";
+    const ad=localStorage.getItem("bs_activeDays");
+    if(ad) activeDays=JSON.parse(ad);
+    const fd=localStorage.getItem("bs_firedDate");
+    const ff=localStorage.getItem("bs_fired");
+    if(fd===todayStr()&&ff) firedToday=new Set(JSON.parse(ff));
+  } catch(e){ schedules=JSON.parse(JSON.stringify(DEFAULT_SCHEDULES)); }
+}
+
+/* ── TTS ── */
+function getKoreanVoice(){
+  const v=speechSynthesis.getVoices();
+  return v.find(x=>x.lang==="ko-KR")||v.find(x=>x.lang.startsWith("ko"))||null;
+}
+function speak(text,onDone){
+  speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(text);
+  u.lang="ko-KR"; u.volume=ttsVolume; u.rate=ttsRate; u.pitch=1.0;
+  const voice=getKoreanVoice(); if(voice) u.voice=voice;
+  if(onDone) u.onend=onDone;
+  speechSynthesis.speak(u);
+}
+function speakRepeat(text,times,onAllDone){
+  if(times<=0){ if(onAllDone) onAllDone(); return; }
+  speak(text,()=>setTimeout(()=>speakRepeat(text,times-1,onAllDone),400));
+}
+
+/* ── Wake Lock ── */
+async function requestWakeLock(){
+  if(!("wakeLock" in navigator)) return;
+  try {
+    if(wakeLock&&!wakeLock.released) return;
+    wakeLock=await navigator.wakeLock.request("screen");
+    wakeLock.addEventListener("release",()=>setBadge(false));
+    setBadge(true);
+  } catch(e){ setBadge(false); }
+}
+function setBadge(on){
+  const el=document.getElementById("wakeLockBadge");
+  el.textContent=on?"화면유지 ✓":"화면유지 ✕";
+  el.className="wakelock-badge"+(on?"":" off");
+}
+
+/* ── 스케줄러 ── */
+function startScheduler(){
+  const code=`var iv=setInterval(function(){postMessage("t");},5000);`;
+  try {
+    const blob=new Blob([code],{type:"application/javascript"});
+    schedulerWorker=new Worker(URL.createObjectURL(blob));
+    schedulerWorker.onmessage=checkAndFire;
+  } catch(e){ setInterval(checkAndFire,5000); }
+  setInterval(updateUI,1000);
+}
+
+/* ── 체크 & 발화 ── */
+function checkAndFire(){
+  const today=todayStr();
+  if(localStorage.getItem("bs_firedDate")!==today){
+    firedToday.clear(); lastFiredMinute=""; saveState(); renderScheduleList();
+  }
+  if(!isActive) return;
+  const now=nowHM();
+  if(now===lastFiredMinute) return;
+  const dow=new Date().getDay();
+  if(!activeDays.includes(dow)) return;
+  let fired=false;
+  schedules.forEach((s,i)=>{
+    if(!s.enabled) return;
+    const sd=s.days||[0,1,2,3,4,5,6];
+    if(!sd.includes(dow)) return;
+    const key=s.time+"_"+i;
+    if(s.time===now&&!firedToday.has(key)){
+      firedToday.add(key); fired=true; fireAlarm(s,i);
+    }
+  });
+  if(fired){ lastFiredMinute=now; saveState(); }
+}
+
+function fireAlarm(s,i){
+  const text=TTS_TEXT[s.type]||TTS_TEXT.custom;
+  addLog(`${s.time} ${typeLabel(s.type).text} — "${text}" × ${repeatCount}회`,"ring");
+  renderScheduleList(); fireVisualRing(s.type);
+  speakRepeat(text,repeatCount,()=>{ addLog("완료","done"); renderScheduleList(); updateUI(); });
+}
+
+function fireVisualRing(type){
+  const icon=document.getElementById("statusIcon");
+  const titleEl=document.getElementById("statusTitle");
+  const subEl=document.getElementById("statusSub");
+  icon.textContent=type==="end"?"🔕":"🔔";
+  icon.className="status-indicator ringing";
+  titleEl.textContent="방송 중";
+  subEl.textContent=(TTS_TEXT[type]||TTS_TEXT.custom)+" × "+repeatCount;
+  setTimeout(()=>{ if(icon.className.includes("ringing")){ icon.className="status-indicator"; updateUI(); } }, repeatCount*3500+1000);
+}
+
+/* ── UI ── */
+function typeLabel(t){
+  if(t==="start") return {text:"시작",cls:"start"};
+  if(t==="end")   return {text:"종료",cls:"end"};
+  return {text:"기타",cls:""};
+}
+
+function setActive(val){
+  isActive=val;
+  document.getElementById("btnOn").className="btn-master"+(val?" on":"");
+  document.getElementById("btnOff").className="btn-master"+(!val?" off":"");
+  if(!val) speechSynthesis.cancel();
+  saveState(); updateUI();
+  if(val) requestWakeLock();
+}
+
+function changeRepeat(d){
+  repeatCount=Math.max(1,Math.min(10,repeatCount+d));
+  document.getElementById("repeatVal").textContent=repeatCount;
+  saveState();
+}
+
+function toggleActiveDay(btn){
+  btn.classList.toggle("on");
+  activeDays=Array.from(document.querySelectorAll('#activeDays .day-pill.on')).map(b=>parseInt(b.dataset.day));
+  saveState(); updateUI(); renderScheduleList();
+}
+
+function renderActiveDays(){
+  document.querySelectorAll('#activeDays .day-pill').forEach(btn=>{
+    btn.classList.toggle("on",activeDays.includes(parseInt(btn.dataset.day)));
+  });
+}
+
+function renderScheduleList(){
+  const list=document.getElementById("scheduleList");
+  const hint=document.getElementById("emptyHint");
+  const now=nowHM();
+  const dow=new Date().getDay();
+  Array.from(list.querySelectorAll(".schedule-row")).forEach(el=>el.remove());
+  if(schedules.length===0){ if(hint) hint.style.display=""; return; }
+  if(hint) hint.style.display="none";
+  const nextIdx=schedules.findIndex(s=>{
+    const sd=s.days||[0,1,2,3,4,5,6];
+    return s.enabled&&s.time>now&&sd.includes(dow);
+  });
+  const dayNames=["일","월","화","수","목","금","토"];
+  schedules.forEach((s,i)=>{
+    const fired=firedToday.has(s.time+"_"+i);
+    const isNext=i===nextIdx;
+    const dotCls=!s.enabled?"":fired?"fired":isNext?"next":"active";
+    const lbl=typeLabel(s.type);
+    const sd=s.days||[0,1,2,3,4,5,6];
+    const dayStr=sd.length===7?"매일":sd.map(d=>dayNames[d]).join("·");
+    const row=document.createElement("div");
+    row.className="schedule-row";
+    row.innerHTML=`
+      <div class="bell-dot ${dotCls}"></div>
+      <div style="flex:1;${!s.enabled?"opacity:0.38":""}">
+        <div class="schedule-time">${s.time}</div>
+        <div class="schedule-days">${dayStr}</div>
+      </div>
+      <span class="schedule-label ${lbl.cls}">${lbl.text}</span>
+      <button class="schedule-toggle" onclick="toggleSchedule(${i})">${s.enabled?"●":"○"}</button>
+      <button class="schedule-toggle" onclick="removeSchedule(${i})" style="color:var(--red);">✕</button>`;
+    list.appendChild(row);
+  });
+}
+
+function updateUI(){
+  const now=nowHM();
+  const dow=new Date().getDay();
+  const isOpDay=activeDays.includes(dow);
+  const next=isOpDay?schedules.find(s=>{
+    const sd=s.days||[0,1,2,3,4,5,6];
+    return s.enabled&&s.time>now&&sd.includes(dow);
+  }):null;
+  const nextEl=document.getElementById("nextBellTime");
+  const titleEl=document.getElementById("statusTitle");
+  const subEl=document.getElementById("statusSub");
+  const icon=document.getElementById("statusIcon");
+  if(icon.className.includes("ringing")) return;
+  if(!isActive){
+    titleEl.textContent="방송 꺼짐"; subEl.textContent="활성화하면 자동 안내방송이 나갑니다";
+    nextEl.textContent="--:--"; icon.textContent="🔕"; return;
+  }
+  if(next){
+    titleEl.textContent="다음 방송";
+    subEl.textContent=typeLabel(next.type).text+" 예정 — "+(TTS_TEXT[next.type]||"");
+    nextEl.textContent=next.time; icon.textContent="🔔";
+  } else {
+    nextEl.textContent="--:--";
+    if(!isOpDay){ titleEl.textContent="오늘은 비운영일"; subEl.textContent="설정된 운영 요일이 아닙니다"; icon.textContent="😴"; }
+    else { titleEl.textContent="오늘 방송 완료"; subEl.textContent="내일 자정에 초기화됩니다"; icon.textContent="✔"; }
+  }
+}
+
+function addLog(msg,cls){
+  const box=document.getElementById("logBox");
+  const ph=box.querySelector("[data-placeholder]"); if(ph) ph.remove();
+  const el=document.createElement("span");
+  el.className="log-entry "+cls;
+  el.textContent=`[${nowHMS()}] ${msg}`;
+  box.prepend(el);
+  while(box.children.length>40) box.removeChild(box.lastChild);
+}
+
+function removeSchedule(idx){ schedules.splice(idx,1); firedToday.clear(); lastFiredMinute=""; saveState(); renderScheduleList(); updateUI(); }
+function toggleSchedule(idx){ schedules[idx].enabled=!schedules[idx].enabled; saveState(); renderScheduleList(); updateUI(); }
+
+/* ── 피커 탭 ── */
+let pickH=9, pickM=0, selType="start";
+let currentTab="drum";
+
+function switchTab(tab){
+  currentTab=tab;
+  document.getElementById("tabDrum").classList.toggle("active", tab==="drum");
+  document.getElementById("tabText").classList.toggle("active", tab==="text");
+  document.getElementById("panelDrum").style.display = tab==="drum"?"flex":"none";
+  document.getElementById("panelText").style.display = tab==="text"?"flex":"none";
+  if(tab==="text"){
+    document.getElementById("inputH").value = pickH;
+    document.getElementById("inputM").value = pickM;
+  }
+}
+
+function syncFromText(){
+  const h=parseInt(document.getElementById("inputH").value||"0",10);
+  const m=parseInt(document.getElementById("inputM").value||"0",10);
+  if(!isNaN(h)&&h>=0&&h<=23) pickH=h;
+  if(!isNaN(m)&&m>=0&&m<=59) pickM=m;
+  document.getElementById("pickHour").textContent=pad2(pickH);
+  document.getElementById("pickMin").textContent=pad2(pickM);
+}
+
+function changeHour(d){ pickH=(pickH+d+24)%24; document.getElementById("pickHour").textContent=pad2(pickH); }
+function changeMin(d){ pickM=(pickM+d+60)%60; document.getElementById("pickMin").textContent=pad2(pickM); }
+
+function selectType(btn){
+  document.querySelectorAll('.type-btn').forEach(b=>b.className="type-btn");
+  selType=btn.dataset.type;
+  btn.classList.add("sel-"+selType);
+}
+
+function openModal(){
+  document.getElementById("modalOverlay").classList.add("open");
+  switchTab("drum");
+}
+function closeModal(){
+  document.getElementById("modalOverlay").classList.remove("open");
+}
+function handleOverlayClick(e){
+  if(e.target===document.getElementById("modalOverlay")) closeModal();
+}
+
+function addSchedule(){
+  if(currentTab==="text") syncFromText();
+  const time=pad2(pickH)+":"+pad2(pickM);
+  const days=Array.from(document.querySelectorAll('#formDays .form-day-pill.on')).map(b=>parseInt(b.dataset.day));
+  schedules.push({time, type:selType, enabled:true, days:days.length?days:[1,2,3,4,5,6,0]});
+  schedules.sort((a,b)=>a.time.localeCompare(b.time));
+  saveState(); renderScheduleList(); updateUI(); closeModal();
+}
+
+/* ── 미리듣기 ── */
+function previewAnnounce(type){
+  const text=TTS_TEXT[type]||TTS_TEXT.custom;
+  const btnId=type==="start"?"btnPreviewStart":"btnPreviewEnd";
+  const dotsId=type==="start"?"dotsStart":"dotsEnd";
+  const btn=document.getElementById(btnId);
+  const dots=document.getElementById(dotsId);
+  if(btn.disabled) return;
+  btn.disabled=true; btn.classList.add("playing");
+  dots.innerHTML="<span></span><span></span><span></span>";
+  speakRepeat(text,repeatCount,()=>{
+    btn.disabled=false; btn.classList.remove("playing"); dots.innerHTML="";
+  });
+}
+
+/* ── voices ── */
+if(typeof speechSynthesis!=="undefined"&&speechSynthesis.onvoiceschanged!==undefined){
+  speechSynthesis.onvoiceschanged=()=>{};
+}
+
+/* ── 이벤트 ── */
+document.addEventListener("visibilitychange",()=>{
+  if(document.visibilityState==="visible"){ requestWakeLock(); lastFiredMinute=""; checkAndFire(); }
+});
+
+/* ── 초기화 ── */
+loadState();
+renderScheduleList();
+renderActiveDays();
+document.getElementById("repeatVal").textContent=repeatCount;
+document.getElementById("volRange").value=ttsVolume;
+document.getElementById("volVal").textContent=Math.round(ttsVolume*100)+"%";
+document.getElementById("rateRange").value=ttsRate;
+document.getElementById("rateVal").textContent=ttsRate.toFixed(2)+"x";
+setActive(isActive);
+requestWakeLock();
+startScheduler();
+checkAndFire();
+</script>
+</body>
+</html>

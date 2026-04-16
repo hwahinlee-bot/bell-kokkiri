@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>공부하는코끼리 종소리</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #0f1117; --surface: #1a1d27; --surface2: #22263a;
+  --border: rgba(255,255,255,0.08); --border2: rgba(255,255,255,0.15);
+  --text: #f0f0f0; --text2: #8b8fa8;
+  --accent: #6c8bff; --accent-glow: rgba(108,139,255,0.18);
+  --green: #4ecb71; --green-glow: rgba(78,203,113,0.15);
+  --amber: #f5a623; --red: #ff5c5c;
+}
+body {
+  background: var(--bg); color: var(--text);
+  font-family: 'Pretendard','Apple SD Gothic Neo','Noto Sans KR',sans-serif;
+  min-height: 100dvh; display: flex; flex-direction: column;
+}
+header {
+  padding: 1.5rem 1.5rem 0.75rem;
+  display: flex; align-items: center; gap: 10px;
+  border-bottom: 0.5px solid var(--border);
+}
+.logo {
+  width: 36px; height: 36px; background: var(--accent-glow);
+  border: 1px solid var(--accent); border-radius: 10px;
+  display: flex; align-items: center; justify-content: center; font-size: 18px;
+}
+header h1 { font-size: 16px; font-weight: 600; letter-spacing: -0.3px; }
+.wakelock-badge {
+  font-size: 10px; padding: 2px 7px; border-radius: 5px; margin-left: auto;
+  background: rgba(78,203,113,0.1); border: 0.5px solid rgba(78,203,113,0.3); color: var(--green);
+}
+.wakelock-badge.off { background: rgba(255,92,92,0.08); border-color: rgba(255,92,92,0.3); color: var(--red); }
+main { flex:1; padding: 1.25rem 1.5rem; display: flex; flex-direction: column; gap: 1rem; overflow-y: auto; }
+
+.status-card {
+  background: var(--surface); border: 0.5px solid var(--border);
+  border-radius: 14px; padding: 1.25rem; display: flex; align-items: center; gap: 1rem;
+}
+.status-indicator {
+  width: 48px; height: 48px; flex-shrink: 0; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; font-size: 22px;
+  background: var(--surface2); border: 1px solid var(--border2); transition: all 0.3s;
+}
+.status-indicator.ringing {
+  background: rgba(245,166,35,0.2); border-color: var(--amber);
+  animation: pulse-ring 0.5s ease-in-out infinite alternate;
+}
+@keyframes pulse-ring {
+  from { transform: scale(1); box-shadow: 0 0 0 0 rgba(245,166,35,0.4); }
+  to   { transform: scale(1.08); box-shadow: 0 0 0 8px rgba(245,166,35,0); }
+}
+.status-text { flex: 1; }
+.status-text strong { font-size: 15px; font-weight: 600; display: block; }
+.status-text span { font-size: 13px; color: var(--text2); }
+.next-bell { font-size: 22px; font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; letter-spacing: -0.5px; }
+
+.master-toggle { display: flex; gap: 10px; }
+.btn-master {
+  flex: 1; padding: 14px; border-radius: 12px; border: 1px solid var(--border2);
+  background: var(--surface); color: var(--text2); font-size: 15px; font-weight: 600;
+  cursor: pointer; font-family: inherit; transition: all 0.2s;
+}
+.btn-master.on  { background: var(--green-glow); border-color: var(--green); color: var(--green); }
+.btn-master.off { background: rgba(255,92,92,0.08); border-color: rgba(255,92,92,0.4); color: var(--red); }
+
+.section-label {
+  font-size: 11px; font-weight: 600; color: var(--text2);
+  letter-spacing: 0.8px; text-transform: uppercase; margin-bottom: 6px; padding-left: 2px;
+}
+
+.schedule-list { background: var(--surface); border: 0.5px solid var(--border); border-radius: 14px; overflow: hidden; }
+.schedule-row {
+  display: flex; align-items: center; padding: 0.85rem 1.1rem;
+  gap: 12px; border-bottom: 0.5px solid var(--border); transition: background 0.2s;
+}
+.schedule-row:last-child { border-bottom: none; }
+.schedule-row:active { background: var(--surface2); }
+.bell-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border2); flex-shrink: 0; }
+.bell-dot.active { background: var(--green); box-shadow: 0 0 6px var(--green); }
+.bell-dot.fired  { background: var(--text2); }
+.bell-dot.next   { background: var(--accent); box-shadow: 0 0 6px var(--accent); }
+.schedule-time { font-size: 17px; font-weight: 600; font-variant-numeric: tabular-nums; flex: 1; letter-spacing: -0.3px; }
+.schedule-label {
+  font-size: 12px; color: var(--text2); background: var(--surface2);
+  border: 0.5px solid var(--border2); border-radius: 6px; padding: 2px 8px;
+}
+.schedule-label.start { color: var(--green); border-color: rgba(78,203,113,0.3); background: rgba(78,203,113,0.08); }
+.schedule-label.end   { color: #ff8c8c; border-color: rgba(255,92,92,0.3); background: rgba(255,92,92,0.08); }
+.schedule-toggle {
+  width: 28px; height: 28px; border: 0.5px solid var(--border2); border-radius: 8px;
+  background: transparent; color: var(--text2); font-size: 13px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; transition: all 0.15s; flex-shrink: 0;
+}
+.schedule-toggle:active { background: var(--surface2); }
+.empty-hint { text-align: center; font-size: 13px; color: var(--text2); padding: 1.5rem 0; }
+
+.add-section { background: var(--surface); border: 0.5px solid var(--border); border-radius: 14px; overflow: hidden; }
+.add-header { padding: 0.9rem 1.1rem; display: flex; align-items: center; gap: 10px; cursor: pointer; user-select: none; }
+.add-header span { flex: 1; font-size: 14px; font-weight: 500; }
+.add-chevron { color: var(--text2); font-size: 12px; transition: transform 0.2s; }
+.add-chevron.open { transform: rotate(180deg); }
+.add-form { display: none; padding: 0 1.1rem 1.1rem; gap: 10px; flex-direction: column; border-top: 0.5px solid var(--border); }
+.add-form.open { display: flex; }
+.form-row { display: flex; gap: 10px; align-items: flex-end; }
+.form-group { display: flex; flex-direction: column; gap: 5px; flex: 1; }
+.form-group label { font-size: 11px; color: var(--text2); letter-spacing: 0.3px; }
+.form-group input, .form-group select {
+  background: var(--surface2); border: 0.5px solid var(--border2); border-radius: 8px;
+  color: var(--text); font-size: 15px; padding: 9px 11px; font-family: inherit;
+  outline: none; width: 100%; transition: border-color 0.15s; -webkit-appearance: none;
+}
+.form-group input:focus, .form-group select:focus { border-color: var(--accent); }
+.form-group input[type="time"] { font-variant-numeric: tabular-nums; }
+select option { background: #1a1d27; }
+.btn-add {
+  background: var(--accent); color: #fff; border: none; border-radius: 8px;
+  padding: 9px 18px; font-size: 14px; font-weight: 600; cursor: pointer;
+  font-family: inherit; white-space: nowrap; transition: opacity 0.15s; align-self: flex-end;
+}
+.btn-add:active { opacity: 0.8; }
+
+.settings-row {
+  background: var(--surface); border: 0.5px solid var(--border); border-radius: 14px;
+  padding: 1rem 1.1rem; display: flex; align-items: center; gap: 12px;
+}
+.settings-row span { flex: 1; font-size: 14px; }
+.settings-row small { font-size: 12px; color: var(--text2); }
+.stepper { display: flex; align-items: center; gap: 6px; }
+.stepper-btn {
+  width: 32px; height: 32px; background: var(--surface2); border: 0.5px solid var(--border2);
+  border-radius: 8px; color: var(--text); font-size: 16px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; transition: background 0.15s; flex-shrink: 0;
+}
+.stepper-btn:active { background: var(--border2); }
+.stepper-val { font-size: 16px; font-weight: 600; min-width: 24px; text-align: center; }
+
+.btn-preview {
+  width: 100%; padding: 15px; border-radius: 12px; border: 1px dashed var(--border2);
+  background: var(--surface); color: var(--text); font-size: 15px; font-weight: 500;
+  cursor: pointer; font-family: inherit; display: flex; align-items: center;
+  justify-content: center; gap: 10px; transition: all 0.2s; letter-spacing: -0.2px;
+}
+.btn-preview:active { opacity: 0.75; }
+.btn-preview.playing { border-style: solid; border-color: var(--amber); background: rgba(245,166,35,0.07); color: var(--amber); }
+.preview-dots { display: flex; gap: 4px; align-items: center; height: 16px; }
+.preview-dots span {
+  display: inline-block; width: 5px; height: 5px; border-radius: 50%;
+  background: var(--amber); animation: dot-bounce 0.6s ease-in-out infinite alternate;
+}
+.preview-dots span:nth-child(2) { animation-delay: 0.15s; }
+.preview-dots span:nth-child(3) { animation-delay: 0.30s; }
+@keyframes dot-bounce {
+  from { transform: scaleY(0.5); opacity: 0.4; }
+  to   { transform: scaleY(1.4); opacity: 1; }
+}
+
+.log-box {
+  background: var(--surface); border: 0.5px solid var(--border); border-radius: 14px;
+  padding: 1rem 1.1rem; font-size: 12px; color: var(--text2);
+  font-variant-numeric: tabular-nums; min-height: 60px; max-height: 120px; overflow-y: auto; line-height: 1.8;
+}
+.log-entry { display: block; }
+.log-entry.ring { color: var(--amber); }
+.log-entry.done { color: var(--green); }
+
+/* 요일 선택 */
+.day-selector {
+  background: var(--surface); border: 0.5px solid var(--border);
+  border-radius: 14px; padding: 1rem 1.1rem;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.day-selector-label { font-size: 14px; }
+.day-pills { display: flex; gap: 6px; flex-wrap: wrap; }
+.day-pill {
+  width: 38px; height: 38px; border-radius: 50%;
+  border: 0.5px solid var(--border2); background: var(--surface2);
+  color: var(--text2); font-size: 13px; font-weight: 600;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s; font-family: inherit; flex-shrink: 0;
+}
+.day-pill.on { background: var(--accent-glow); border-color: var(--accent); color: var(--accent); }
+.day-pill.off-day { background: rgba(255,92,92,0.06); border-color: rgba(255,92,92,0.2); color: var(--text2); opacity: 0.5; }
+.schedule-days { font-size: 10px; color: var(--text2); margin-top: 2px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">🐘</div>
+  <h1>공부하는코끼리 종소리</h1>
+  <small id="wakeLockBadge" class="wakelock-badge off">화면유지 ✕</small>
+</header>
+
+<main>
+  <div class="status-card">
+    <div class="status-indicator" id="statusIcon">🔔</div>
+    <div class="status-text">
+      <strong id="statusTitle">대기 중</strong>
+      <span id="statusSub">스케줄 확인 중...</span>
+    </div>
+    <div class="next-bell" id="nextBellTime">--:--</div>
+  </div>
+
+  <div class="master-toggle">
+    <button class="btn-master on" id="btnOn"  onclick="setActive(true)">● 종소리 켜기</button>
+    <button class="btn-master"   id="btnOff" onclick="setActive(false)">○ 끄기</button>
+  </div>
+
+  <div class="day-selector">
+    <span class="day-selector-label">운영 요일</span>
+    <div class="day-pills" id="activeDays">
+      <button class="day-pill on"  data-day="1" onclick="toggleActiveDay(this)">월</button>
+      <button class="day-pill on"  data-day="2" onclick="toggleActiveDay(this)">화</button>
+      <button class="day-pill on"  data-day="3" onclick="toggleActiveDay(this)">수</button>
+      <button class="day-pill on"  data-day="4" onclick="toggleActiveDay(this)">목</button>
+      <button class="day-pill"     data-day="5" onclick="toggleActiveDay(this)">금</button>
+      <button class="day-pill"     data-day="6" onclick="toggleActiveDay(this)">토</button>
+      <button class="day-pill"     data-day="0" onclick="toggleActiveDay(this)">일</button>
+    </div>
+  </div>
+
+  <div>
+    <div class="section-label">등록된 스케줄</div>
+    <div class="schedule-list" id="scheduleList">
+      <div class="empty-hint" id="emptyHint">스케줄이 없습니다</div>
+    </div>
+  </div>
+
+  <div class="add-section">
+    <div class="add-header" onclick="toggleAddForm()">
+      <span>+ 시간 추가</span>
+      <span class="add-chevron" id="addChevron">▼</span>
+    </div>
+    <div class="add-form" id="addForm">
+      <div class="form-row">
+        <div class="form-group">
+          <label>시간</label>
+          <input type="time" id="inputTime" value="09:00">
+        </div>
+        <div class="form-group">
+          <label>구분</label>
+          <select id="inputType">
+            <option value="start">수업 시작</option>
+            <option value="end">수업 종료</option>
+            <option value="custom">기타</option>
+          </select>
+        </div>
+      </div>
+      <div>
+        <label style="font-size:11px; color:var(--text2); display:block; margin-bottom:6px;">요일 선택</label>
+        <div class="day-pills" id="inputDays">
+          <button class="day-pill on" data-day="1" onclick="toggleInputDay(this)">월</button>
+          <button class="day-pill on" data-day="2" onclick="toggleInputDay(this)">화</button>
+          <button class="day-pill on" data-day="3" onclick="toggleInputDay(this)">수</button>
+          <button class="day-pill on" data-day="4" onclick="toggleInputDay(this)">목</button>
+          <button class="day-pill" data-day="5" onclick="toggleInputDay(this)">금</button>
+          <button class="day-pill" data-day="6" onclick="toggleInputDay(this)">토</button>
+          <button class="day-pill" data-day="0" onclick="toggleInputDay(this)">일</button>
+        </div>
+      </div>
+      <button class="btn-add" onclick="addSchedule()" style="align-self:flex-end;">추가</button>
+    </div>
+  </div>
+
+  <div class="settings-row">
+    <span>반복 횟수</span>
+    <small>안내 방송 반복</small>
+    <div class="stepper">
+      <button class="stepper-btn" onclick="changeRepeat(-1)">−</button>
+      <span class="stepper-val" id="repeatVal">3</span>
+      <button class="stepper-btn" onclick="changeRepeat(+1)">+</button>
+    </div>
+  </div>
+
+  <div class="settings-row">
+    <span>볼륨</span>
+    <div style="flex:1; padding: 0 12px;">
+      <input type="range" id="volRange" min="0.1" max="1" step="0.05" value="1"
+        oninput="ttsVolume=parseFloat(this.value); document.getElementById('volVal').textContent=Math.round(ttsVolume*100)+'%'"
+        style="width:100%;">
+    </div>
+    <span class="stepper-val" id="volVal" style="min-width:36px; text-align:right;">100%</span>
+  </div>
+
+  <div class="settings-row">
+    <span>말하기 속도</span>
+    <div style="flex:1; padding: 0 12px;">
+      <input type="range" id="rateRange" min="0.5" max="1.4" step="0.05" value="0.85"
+        oninput="ttsRate=parseFloat(this.value); document.getElementById('rateVal').textContent=this.value+'x'"
+        style="width:100%;">
+    </div>
+    <span class="stepper-val" id="rateVal" style="min-width:36px; text-align:right;">0.85x</span>
+  </div>
+
+  <div style="display:flex; gap:10px;">
+    <button class="btn-preview" id="btnPreviewStart" onclick="previewAnnounce('start')">
+      <span>▶</span><span>시작 미리듣기</span>
+    </button>
+    <button class="btn-preview" id="btnPreviewEnd" onclick="previewAnnounce('end')" style="border-color:rgba(255,92,92,0.4); color:var(--red);">
+      <span>▶</span><span>종료 미리듣기</span>
+    </button>
+  </div>
+
+  <div>
+    <div class="section-label">최근 기록</div>
+    <div class="log-box" id="logBox">
+      <span class="log-entry" style="color:var(--text2)" data-placeholder>아직 기록이 없습니다</span>
+    </div>
+  </div>
+</main>
+
+<script>
+/* ── 기본 스케줄 ── */
+const DEFAULT_SCHEDULES = [
+  { time:"09:00", type:"start", enabled:true, days:[1,2,3,4] },
+  { time:"10:30", type:"end",   enabled:true, days:[1,2,3,4] },
+  { time:"10:40", type:"start", enabled:true, days:[1,2,3,4] },
+  { time:"12:10", type:"end",   enabled:true, days:[1,2,3,4] },
+  { time:"14:00", type:"start", enabled:true, days:[1,2,3,4] },
+  { time:"15:30", type:"end",   enabled:true, days:[1,2,3,4] },
+  { time:"15:40", type:"start", enabled:true, days:[1,2,3,4] },
+  { time:"17:10", type:"end",   enabled:true, days:[1,2,3,4] },
+];
+
+/* ── 상태 ── */
+let schedules     = [];
+let repeatCount   = 3;
+let ttsVolume     = 1.0;
+let ttsRate       = 0.85;
+let isActive      = true;
+let wakeLock      = null;
+let firedToday    = new Set();
+let lastFiredMinute = "";
+let schedulerWorker = null;
+let activeDays = [1,2,3,4]; // 월~목
+
+/* ── TTS 문구 ── */
+const TTS_TEXT = {
+  start:  "수업을 시작합니다",
+  end:    "수업을 마칩니다",
+  custom: "안내 말씀드립니다",
+};
+
+/* ── 유틸 ── */
+function todayStr() { return new Date().toISOString().slice(0,10); }
+function pad2(n)    { return String(n).padStart(2,"0"); }
+function nowHM()    { const d=new Date(); return pad2(d.getHours())+":"+pad2(d.getMinutes()); }
+function nowHMS()   { const d=new Date(); return pad2(d.getHours())+":"+pad2(d.getMinutes())+":"+pad2(d.getSeconds()); }
+
+/* ── localStorage ── */
+function saveState() {
+  localStorage.setItem("bs_schedules",   JSON.stringify(schedules));
+  localStorage.setItem("bs_repeat",      String(repeatCount));
+  localStorage.setItem("bs_volume",      String(ttsVolume));
+  localStorage.setItem("bs_rate",        String(ttsRate));
+  localStorage.setItem("bs_active",      String(isActive));
+  localStorage.setItem("bs_fired",       JSON.stringify([...firedToday]));
+  localStorage.setItem("bs_firedDate",   todayStr());
+  localStorage.setItem("bs_activeDays",  JSON.stringify(activeDays));
+}
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem("bs_schedules");
+    schedules   = raw ? JSON.parse(raw) : JSON.parse(JSON.stringify(DEFAULT_SCHEDULES));
+    repeatCount = parseInt(localStorage.getItem("bs_repeat")  || "3",  10);
+    ttsVolume   = parseFloat(localStorage.getItem("bs_volume") || "1.0");
+    ttsRate     = parseFloat(localStorage.getItem("bs_rate")   || "0.85");
+    isActive    = localStorage.getItem("bs_active") !== "false";
+    const fd    = localStorage.getItem("bs_firedDate");
+    const ff    = localStorage.getItem("bs_fired");
+    if (fd === todayStr() && ff) firedToday = new Set(JSON.parse(ff));
+  } catch(e) {
+    schedules = JSON.parse(JSON.stringify(DEFAULT_SCHEDULES));
+  }
+}
+
+/* ── TTS (Web Speech API) ──
+   speak()은 utterance를 한 번 발화.
+   speakRepeat()은 repeatCount번 순차 발화 (onend 체이닝).
+── */
+function getKoreanVoice() {
+  const voices = speechSynthesis.getVoices();
+  // ko-KR 우선, 없으면 ko, 없으면 기본
+  return voices.find(v => v.lang === "ko-KR")
+      || voices.find(v => v.lang.startsWith("ko"))
+      || null;
+}
+
+function speak(text, onDone) {
+  // 이미 말하는 중이면 cancel 후 재시작
+  speechSynthesis.cancel();
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.lang   = "ko-KR";
+  utter.volume = ttsVolume;
+  utter.rate   = ttsRate;
+  utter.pitch  = 1.0;
+  const voice  = getKoreanVoice();
+  if (voice) utter.voice = voice;
+  if (onDone) utter.onend = onDone;
+  speechSynthesis.speak(utter);
+}
+
+function speakRepeat(text, times, onAllDone) {
+  if (times <= 0) { if (onAllDone) onAllDone(); return; }
+  speak(text, () => {
+    // 반복 사이 0.4초 간격
+    setTimeout(() => speakRepeat(text, times - 1, onAllDone), 400);
+  });
+}
+
+/* ── Wake Lock ── */
+async function requestWakeLock() {
+  if (!("wakeLock" in navigator)) return;
+  try {
+    if (wakeLock && !wakeLock.released) return;
+    wakeLock = await navigator.wakeLock.request("screen");
+    wakeLock.addEventListener("release", () => setBadge(false));
+    setBadge(true);
+  } catch(e) { setBadge(false); }
+}
+
+function setBadge(on) {
+  const el = document.getElementById("wakeLockBadge");
+  el.textContent = on ? "화면유지 ✓" : "화면유지 ✕";
+  el.className   = "wakelock-badge" + (on ? "" : " off");
+}
+
+/* ── 정밀 스케줄러 (Web Worker) ── */
+function startScheduler() {
+  const code = `var iv = setInterval(function(){ postMessage("t"); }, 5000);`;
+  try {
+    const blob = new Blob([code], {type:"application/javascript"});
+    schedulerWorker = new Worker(URL.createObjectURL(blob));
+    schedulerWorker.onmessage = checkAndFire;
+  } catch(e) {
+    setInterval(checkAndFire, 5000);
+  }
+  setInterval(updateUI, 1000);
+}
+
+/* ── 체크 & 발화 ── */
+function checkAndFire() {
+  const today = todayStr();
+  if (localStorage.getItem("bs_firedDate") !== today) {
+    firedToday.clear();
+    lastFiredMinute = "";
+    saveState();
+    renderScheduleList();
+  }
+  if (!isActive) return;
+  const now = nowHM();
+  if (now === lastFiredMinute) return;
+
+  const todayDow = new Date().getDay(); // 0=일,1=월,...6=토
+  // 전체 운영 요일 체크
+  if (!activeDays.includes(todayDow)) return;
+
+  let fired = false;
+  schedules.forEach((s, i) => {
+    if (!s.enabled) return;
+    // 스케줄별 요일 체크
+    const sDays = s.days || [0,1,2,3,4,5,6];
+    if (!sDays.includes(todayDow)) return;
+    const key = s.time + "_" + i;
+    if (s.time === now && !firedToday.has(key)) {
+      firedToday.add(key);
+      fired = true;
+      fireAlarm(s, i);
+    }
+  });
+  if (fired) { lastFiredMinute = now; saveState(); }
+}
+
+function fireAlarm(s, i) {
+  const lbl  = typeLabel(s.type);
+  const text = TTS_TEXT[s.type] || TTS_TEXT.custom;
+  addLog(`${s.time} ${lbl.text} — "${text}" × ${repeatCount}회`, "ring");
+  renderScheduleList();
+  fireVisualRing(s.type);
+
+  speakRepeat(text, repeatCount, () => {
+    addLog("완료", "done");
+    renderScheduleList();
+    updateUI();
+  });
+}
+
+function fireVisualRing(type) {
+  const icon    = document.getElementById("statusIcon");
+  const titleEl = document.getElementById("statusTitle");
+  const subEl   = document.getElementById("statusSub");
+  icon.textContent = type === "end" ? "🔕" : "🔔";
+  icon.className   = "status-indicator ringing";
+  titleEl.textContent = "방송 중";
+  subEl.textContent   = (TTS_TEXT[type] || TTS_TEXT.custom) + " × " + repeatCount;
+  // 예상 재생 시간 후 원복 (발화 완료 콜백이 updateUI 호출하지만 보험용)
+  const est = repeatCount * 3500 + 1000;
+  setTimeout(() => { if (icon.className.includes("ringing")) { icon.className = "status-indicator"; updateUI(); } }, est);
+}
+
+/* ── UI 함수들 ── */
+function typeLabel(t) {
+  if (t==="start") return {text:"시작",cls:"start"};
+  if (t==="end")   return {text:"종료",cls:"end"};
+  return {text:"기타",cls:""};
+}
+
+function setActive(val) {
+  isActive = val;
+  document.getElementById("btnOn").className  = "btn-master" + (val ? " on" : "");
+  document.getElementById("btnOff").className = "btn-master" + (!val ? " off" : "");
+  if (!val) speechSynthesis.cancel();
+  saveState(); updateUI();
+  if (val) requestWakeLock();
+}
+
+function changeRepeat(d) {
+  repeatCount = Math.max(1, Math.min(10, repeatCount + d));
+  document.getElementById("repeatVal").textContent = repeatCount;
+  saveState();
+}
+
+function toggleAddForm() {
+  const form    = document.getElementById("addForm");
+  const chevron = document.getElementById("addChevron");
+  const open    = form.classList.toggle("open");
+  chevron.classList.toggle("open", open);
+}
+
+function addSchedule() {
+  const time = document.getElementById("inputTime").value;
+  const type = document.getElementById("inputType").value;
+  if (!time) return;
+  const dayBtns = document.querySelectorAll('#inputDays .day-pill.on');
+  const days = Array.from(dayBtns).map(b => parseInt(b.dataset.day));
+  schedules.push({time, type, enabled:true, days: days.length ? days : [1,2,3,4,5,6,7]});
+  schedules.sort((a,b) => a.time.localeCompare(b.time));
+  saveState(); renderScheduleList(); updateUI();
+}
+
+function removeSchedule(idx) {
+  schedules.splice(idx, 1);
+  firedToday.clear(); lastFiredMinute = "";
+  saveState(); renderScheduleList(); updateUI();
+}
+
+function toggleSchedule(idx) {
+  schedules[idx].enabled = !schedules[idx].enabled;
+  saveState(); renderScheduleList(); updateUI();
+}
+
+function renderScheduleList() {
+  const list = document.getElementById("scheduleList");
+  const hint = document.getElementById("emptyHint");
+  const now  = nowHM();
+  Array.from(list.querySelectorAll(".schedule-row")).forEach(el => el.remove());
+  if (schedules.length === 0) { if (hint) hint.style.display = ""; return; }
+  if (hint) hint.style.display = "none";
+  const nextIdx = schedules.findIndex(s => s.enabled && s.time > now);
+  schedules.forEach((s, i) => {
+    const fired  = firedToday.has(s.time + "_" + i);
+    const isNext = i === nextIdx;
+    const dotCls = !s.enabled ? "" : fired ? "fired" : isNext ? "next" : "active";
+    const lbl    = typeLabel(s.type);
+    const row    = document.createElement("div");
+    row.className = "schedule-row";
+    const dayNames = ["일","월","화","수","목","금","토"];
+    const sDays = s.days || [0,1,2,3,4,5,6];
+    const allDays = sDays.length === 7;
+    const dayStr = allDays ? "매일" : sDays.map(d => dayNames[d]).join("·");
+    row.innerHTML = `
+      <div class="bell-dot ${dotCls}"></div>
+      <div style="flex:1; ${!s.enabled?"opacity:0.38":""}">
+        <div class="schedule-time">${s.time}</div>
+        <div class="schedule-days">${dayStr}</div>
+      </div>
+      <span class="schedule-label ${lbl.cls}">${lbl.text}</span>
+      <button class="schedule-toggle" onclick="toggleSchedule(${i})">${s.enabled?"●":"○"}</button>
+      <button class="schedule-toggle" onclick="removeSchedule(${i})" style="color:var(--red);">✕</button>`;
+    list.appendChild(row);
+  });
+}
+
+function updateUI() {
+  const now     = nowHM();
+  const todayDow2 = new Date().getDay();
+  const isOpDay = activeDays.includes(todayDow2);
+  const next    = isOpDay ? schedules.find(s => {
+    const sd = s.days || [0,1,2,3,4,5,6];
+    return s.enabled && s.time > now && sd.includes(todayDow2);
+  }) : null;
+  const nextEl  = document.getElementById("nextBellTime");
+  const titleEl = document.getElementById("statusTitle");
+  const subEl   = document.getElementById("statusSub");
+  const icon    = document.getElementById("statusIcon");
+  const ringing = icon.className.includes("ringing");
+  if (ringing) return;
+  if (!isActive) {
+    titleEl.textContent = "방송 꺼짐";
+    subEl.textContent   = "활성화하면 자동 안내방송이 나갑니다";
+    nextEl.textContent  = "--:--";
+    icon.textContent    = "🔕";
+    return;
+  }
+  if (next) {
+    titleEl.textContent = "다음 방송";
+    subEl.textContent   = typeLabel(next.type).text + " 예정 — " + (TTS_TEXT[next.type]||"");
+    nextEl.textContent  = next.time;
+    icon.textContent    = "🔔";
+  } else {
+    if (!isOpDay) {
+      titleEl.textContent = "오늘은 비운영일";
+      subEl.textContent   = "설정된 운영 요일이 아닙니다";
+      nextEl.textContent  = "--:--";
+      icon.textContent    = "😴";
+    } else {
+      titleEl.textContent = "오늘 방송 완료";
+      subEl.textContent   = "내일 자정에 초기화됩니다";
+      nextEl.textContent  = "--:--";
+      icon.textContent    = "✔";
+    }
+  }
+}
+
+function addLog(msg, cls) {
+  const box = document.getElementById("logBox");
+  const ph  = box.querySelector("[data-placeholder]");
+  if (ph) ph.remove();
+  const el  = document.createElement("span");
+  el.className   = "log-entry " + cls;
+  el.textContent = `[${nowHMS()}] ${msg}`;
+  box.prepend(el);
+  while (box.children.length > 40) box.removeChild(box.lastChild);
+}
+
+/* ── 미리듣기 ── */
+function previewAnnounce(type) {
+  const text = TTS_TEXT[type] || TTS_TEXT.custom;
+  const btnId = type === "start" ? "btnPreviewStart" : "btnPreviewEnd";
+  const btn   = document.getElementById(btnId);
+  if (btn.disabled) return;
+  btn.disabled = true;
+  btn.style.opacity = "0.6";
+  speakRepeat(text, repeatCount, () => {
+    btn.disabled = false;
+    btn.style.opacity = "";
+  });
+}
+
+
+/* ── 요일 토글 함수 ── */
+function toggleInputDay(btn) {
+  btn.classList.toggle("on");
+}
+
+function toggleActiveDay(btn) {
+  btn.classList.toggle("on");
+  activeDays = Array.from(document.querySelectorAll('#activeDays .day-pill.on'))
+    .map(b => parseInt(b.dataset.day));
+  saveState();
+  updateUI();
+  renderScheduleList();
+}
+
+function renderActiveDays() {
+  document.querySelectorAll('#activeDays .day-pill').forEach(btn => {
+    const day = parseInt(btn.dataset.day);
+    btn.classList.toggle("on", activeDays.includes(day));
+  });
+}
+
+/* ── voices 로드 대기 (일부 브라우저에서 비동기) ── */
+if (typeof speechSynthesis !== "undefined" && speechSynthesis.onvoiceschanged !== undefined) {
+  speechSynthesis.onvoiceschanged = () => {};
+}
+
+/* ── 이벤트 ── */
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") {
+    requestWakeLock();
+    lastFiredMinute = "";
+    checkAndFire();
+  }
+});
+
+/* ── 초기화 ── */
+loadState();
+renderScheduleList();
+document.getElementById("repeatVal").textContent = repeatCount;
+document.getElementById("volRange").value        = ttsVolume;
+document.getElementById("volVal").textContent    = Math.round(ttsVolume*100)+"%";
+document.getElementById("rateRange").value       = ttsRate;
+document.getElementById("rateVal").textContent   = ttsRate+"x";
+setActive(isActive);
+renderActiveDays();
+requestWakeLock();
+startScheduler();
+checkAndFire();
+</script>
+</body>
+</html>
